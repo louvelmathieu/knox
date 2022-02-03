@@ -53,6 +53,7 @@ type SecureRouter struct {
 	LogContentMode bool // Log query and response body and headers witch can be hudge
 	security       map[string]SecureMethod
 	Protocol       map[string]func(http.Handler, bool) http.Handler
+	ServeCallback  func(*ResponseWriterLogger, *http.Request, time.Time)
 }
 
 func (sr *SecureRouter) HandleFunc(path string, f func(http.ResponseWriter, *http.Request), secureMethod ...SecureMethod) *mux.Route {
@@ -76,7 +77,7 @@ func (rl SecureRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Start custom respons Writer to store response and status
-	var sw = &responseWriterLogger{ResponseWriter: w}
+	var sw = &ResponseWriterLogger{ResponseWriter: w}
 
 	var match mux.RouteMatch
 	if rl.Match(r, &match) {
@@ -85,6 +86,9 @@ func (rl SecureRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			rl.Router.ServeHTTP(sw, r)
 			if rl.LogQueryMode {
 				logResponse(sw, r, start, rl.LogContentMode)
+			}
+			if rl.ServeCallback != nil {
+				rl.ServeCallback(sw, r, start)
 			}
 			return
 		} else {
@@ -109,6 +113,9 @@ func (rl SecureRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					if rl.LogQueryMode {
 						logResponse(sw, r, start, rl.LogContentMode)
 					}
+					if rl.ServeCallback != nil {
+						rl.ServeCallback(sw, r, start)
+					}
 					return
 				} else {
 					// Not secure route
@@ -116,12 +123,18 @@ func (rl SecureRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					if rl.LogQueryMode {
 						logResponse(sw, r, start, rl.LogContentMode)
 					}
+					if rl.ServeCallback != nil {
+						rl.ServeCallback(sw, r, start)
+					}
 					return
 				}
 			}
 		}
 	}
 	rl.Router.ServeHTTP(sw, r)
+	if rl.ServeCallback != nil {
+		rl.ServeCallback(sw, r, start)
+	}
 	if rl.LogQueryMode {
 		logResponse(sw, r, start, rl.LogContentMode)
 	}
@@ -140,6 +153,7 @@ func NewRouter() SecureRouter {
 		false,
 		map[string]SecureMethod{},
 		map[string]func(http.Handler, bool) http.Handler{},
+		nil,
 	}
 	// Defaut middleware
 	sr.Protocol["jwt"] = jwtMiddleware

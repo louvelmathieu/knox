@@ -1,0 +1,13 @@
+gin-bin
+.idea/
+sandbox/
+vendor/
+cmd/**/gin-bin
+
+elasticbeanstalk.zip
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+gin-bin
