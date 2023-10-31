@@ -94,6 +94,8 @@ func (rl SecureRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			pathTemplate, _ := match.Route.GetPathTemplate()
 			if secureMethod, ok := rl.security[pathTemplate]; ok {
+				r.Header.Set("KNOX_PATH_TEMPLATE", pathTemplate)
+
 				switch secureMethod.ReturnFormat {
 				case "json":
 					w.Header().Add("Content-type", "application/json; charset=utf-8")
